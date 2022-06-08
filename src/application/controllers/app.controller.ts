@@ -12,7 +12,7 @@ export class AppController {
   accountBalanceById(@Query() query:BalanceDTO, @Res() res){
     try{
       const result = this.appService.findAccountBalanceById(query.account_id);
-      res.status(HttpStatus.OK).send('20');
+      res.status(HttpStatus.OK).json(result);
     }catch(err){
       const statusCode:number = err.response.statusCode;
       res.status(statusCode).send('0');
@@ -21,13 +21,8 @@ export class AppController {
 
   @Post('/event')
   event(@Body() eventBody:EventBodyDTO, @Res() res){
-    try{
-      const result = this.appService.createAccountWithDeposit(eventBody);
-      res.status(HttpStatus.OK).json(result);
-    }catch(err){
-      const statusCode:number = err.response.statusCode;
-      res.status(statusCode).send('0');
-    }
+      const result = this.appService.event(eventBody);
+      res.status(HttpStatus.CREATED).json(result);
   }
 
 }

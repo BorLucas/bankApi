@@ -1,5 +1,5 @@
-import { EventBodyDTO } from './../../../dist/domain/dto/postEventDTO.dto.d';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventBodyDTO } from './../../domain/dto/postEventDTO.dto';
+import { BadRequestException, Injectable, MethodNotAllowedException, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class AppService {
@@ -8,35 +8,76 @@ export class AppService {
     {
       accountId:'1',
       balance:10
-    },{
+    },
+    {
       accountId:'2',
       balance:10
     }
-  ]
+  ];
+
   findAccountBalanceById(accountId:string){
     if(!this.accounts.includes(accountId)){
       throw new NotFoundException('account_id not found');
     }
-    return true;
+    return 10;
+    //Pegar codigo que faz essa validação com objetos.(Filter?)
   }
 
-  createAccountWithDeposit(eventBody:EventBodyDTO){
-    const validType = 'deposit';
-    if(eventBody.type != validType){
+  event (eventBody:EventBodyDTO){
+    const validTypes = ['deposit', 'withdraw', 'transfer'];
+    if(!validTypes.includes(eventBody.type)){
       throw new BadRequestException('Invalid Type');
     }
-    const objAccountBalance = {
-      accountId: eventBody.destination,
-      balance: eventBody.amount
+    switch(eventBody.type){
+      case 'deposit':
+        return this.deposit(eventBody);
+      case 'withdraw':
+        return this.withdraw(eventBody);
+      case 'transfer':
+        return this.transfer(eventBody);
     }
-    this.accounts.push(eventBody.destination);
-    this.accountBalance.push(objAccountBalance);
+  }
+
+  deposit(eventBody:EventBodyDTO){
+    const {destination, amount} = eventBody;
+    if(!this.existsAccount(destination)){
+      this.createAccountWithDeposit(destination, amount)
+    }
+    this.depositAccounById(destination, amount);
     const resultObject = {
       destination:{
-        id:eventBody.destination,
-        balance:eventBody.amount
+        id:destination,
+        balance:amount
       }
     }
     return resultObject;
+  }
+
+  withdraw(eventBody:EventBodyDTO){
+    throw new MethodNotAllowedException('method not implemented');
+  }
+
+  transfer(eventBody:EventBodyDTO){
+    throw new MethodNotAllowedException('method not implemented');
+  }
+
+  createAccountWithDeposit(accountId:string, amount:number){
+    this.accounts.push(accountId);
+    this.depositAccounById(accountId, amount)
+  }
+
+  depositAccounById(accountId:string, amount:number){
+    const objAccountBalance = {
+      accountId: accountId,
+      balance: amount
+    }    
+    this.accountBalance.push(objAccountBalance);
+  }
+
+  existsAccount(accountId:string){
+    if(this.accounts.includes(accountId)){
+      return true
+    }
+    return false;
   }
 }
