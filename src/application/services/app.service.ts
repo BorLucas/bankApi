@@ -1,10 +1,11 @@
+import { BalanceDTO } from './../../domain/dto/getBalanceDTO.dto';
 import { EventBodyDTO } from './../../domain/dto/postEventDTO.dto';
 import { BadRequestException, Injectable, MethodNotAllowedException, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class AppService {
-  private accounts = ['1','2','3','4','5'];
-  private accountBalance = [
+  public accounts = ['1','2','300'];
+  public accountBalance = [
     {
       accountId:'1',
       balance:10
@@ -12,15 +13,19 @@ export class AppService {
     {
       accountId:'2',
       balance:10
+    },
+    {
+      accountId:'300',
+      balance:0
     }
   ];
 
   findAccountBalanceById(accountId:string){
-    if(!this.accounts.includes(accountId)){
+    const account = this.existsAccount(accountId);
+    if(!account){
       throw new NotFoundException('account_id not found');
     }
-    return 10;
-    //Pegar codigo que faz essa validação com objetos.(Filter?)
+    return account.balance;
   }
 
   event (eventBody:EventBodyDTO){
@@ -40,44 +45,113 @@ export class AppService {
 
   deposit(eventBody:EventBodyDTO){
     const {destination, amount} = eventBody;
-    if(!this.existsAccount(destination)){
-      this.createAccountWithDeposit(destination, amount)
+    let account = this.existsAccount(destination);
+    if(!account){
+      this.createAccount(destination);
     }
-    this.depositAccounById(destination, amount);
+    const resultObject = this.depositAccount(destination, amount);
+    return resultObject;
+  }
+  
+  withdraw(eventBody:EventBodyDTO){
+    const {origin, amount} = eventBody;
+    let account = this.existsAccount(origin);
+    if(!account){
+      throw new NotFoundException('origin not found');
+    }
+    const resultObject = this.withdrawAccount(origin, amount);
+    return resultObject
+ 
+  }
+
+  transfer(eventBody:EventBodyDTO){
+    const {destination, origin, amount} = eventBody;
+    if(!this.existsAccount(origin)){
+      throw new NotFoundException('origin not found');
+    }
+    const withdrawResult = this.withdrawAccount(origin, amount);
+    const depositResult = this.depositAccount(destination, amount);
+    const transferResult = this.transferResultFactory(withdrawResult, depositResult);
+      
+    return transferResult;
+  }
+
+  depositAccount(accountId:string, amount:number){
+    const foundAccount = this.existsAccount(accountId);
+    if(!foundAccount){
+      throw new NotFoundException('destination not found');
+    }
+      foundAccount.balance += amount;
+      const resultObject = {
+        destination:{
+          id:accountId,
+          balance:foundAccount.balance
+        }
+      }
+      return resultObject; 
+  }
+
+  withdrawAccount(accountId:string, amount:number){
+    const foundAccount = this.existsAccount(accountId);
+    if(!foundAccount){
+      throw new NotFoundException('origin not found');
+    }
+    foundAccount.balance -= amount;
     const resultObject = {
-      destination:{
-        id:destination,
-        balance:amount
+      origin:{
+        id:accountId,
+        balance:foundAccount.balance
       }
     }
     return resultObject;
   }
 
-  withdraw(eventBody:EventBodyDTO){
-    throw new MethodNotAllowedException('method not implemented');
+  existsAccount(accountId:string){
+    if(!this.accounts.includes(accountId)){
+      return false;
+    }
+    const account = this.accountBalance.find(
+      (element) => element.accountId == accountId,
+    );
+    return account;
   }
 
-  transfer(eventBody:EventBodyDTO){
-    throw new MethodNotAllowedException('method not implemented');
-  }
-
-  createAccountWithDeposit(accountId:string, amount:number){
-    this.accounts.push(accountId);
-    this.depositAccounById(accountId, amount)
-  }
-
-  depositAccounById(accountId:string, amount:number){
+  createAccount(accountId:string){
     const objAccountBalance = {
-      accountId: accountId,
-      balance: amount
-    }    
+      accountId:accountId,
+      balance:0
+    }
+    this.accounts.push(accountId);
     this.accountBalance.push(objAccountBalance);
   }
 
-  existsAccount(accountId:string){
-    if(this.accounts.includes(accountId)){
-      return true
+  transferResultFactory(withdrawResult:any, depositResult:any){
+    return  {
+      origin:{
+        id: withdrawResult.origin.id,
+        balance:withdrawResult.origin.balance
+      },
+      destination:{
+        id:depositResult.destination.id,
+        balance:depositResult.destination.balance
+      }
     }
-    return false;
+  }
+  reset(){
+    this.accounts = ['1','2','300'];
+    this.accountBalance = [
+      {
+        accountId:'1',
+        balance:10
+      },
+      {
+        accountId:'2',
+        balance:10
+      },
+      {
+        accountId:'300',
+        balance:0
+      }
+    ];
   }
 }
