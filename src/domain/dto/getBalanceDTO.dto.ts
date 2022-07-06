@@ -1,3 +1,3 @@
-export interface BalanceDTO{
-    account_id:string
+export interface BalanceDTO {
+  account_id: string;
 }

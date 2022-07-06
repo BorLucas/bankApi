@@ -1,39 +1,42 @@
-import { BalanceDTO } from './../../domain/dto/getBalanceDTO.dto';
 import { EventBodyDTO } from './../../domain/dto/postEventDTO.dto';
-import { BadRequestException, Injectable, MethodNotAllowedException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class AppService {
-  public accounts = ['1','2','300'];
+  public accounts = ['1', '2', '300'];
   public accountBalance = [
     {
-      accountId:'1',
-      balance:10
+      accountId: '1',
+      balance: 10,
     },
     {
-      accountId:'2',
-      balance:10
+      accountId: '2',
+      balance: 10,
     },
     {
-      accountId:'300',
-      balance:0
-    }
+      accountId: '300',
+      balance: 0,
+    },
   ];
 
-  findAccountBalanceById(accountId:string){
+  findAccountBalanceById(accountId: string) {
     const account = this.existsAccount(accountId);
-    if(!account){
+    if (!account) {
       throw new NotFoundException('account_id not found');
     }
     return account.balance;
   }
 
-  event (eventBody:EventBodyDTO){
+  event(eventBody: EventBodyDTO) {
     const validTypes = ['deposit', 'withdraw', 'transfer'];
-    if(!validTypes.includes(eventBody.type)){
+    if (!validTypes.includes(eventBody.type)) {
       throw new BadRequestException('Invalid Type');
     }
-    switch(eventBody.type){
+    switch (eventBody.type) {
       case 'deposit':
         return this.deposit(eventBody);
       case 'withdraw':
@@ -43,71 +46,73 @@ export class AppService {
     }
   }
 
-  deposit(eventBody:EventBodyDTO){
-    const {destination, amount} = eventBody;
-    let account = this.existsAccount(destination);
-    if(!account){
+  deposit(eventBody: EventBodyDTO) {
+    const { destination, amount } = eventBody;
+    const account = this.existsAccount(destination);
+    if (!account) {
       this.createAccount(destination);
     }
     const resultObject = this.depositAccount(destination, amount);
     return resultObject;
   }
-  
-  withdraw(eventBody:EventBodyDTO){
-    const {origin, amount} = eventBody;
-    let account = this.existsAccount(origin);
-    if(!account){
+
+  withdraw(eventBody: EventBodyDTO) {
+    const { origin, amount } = eventBody;
+    const account = this.existsAccount(origin);
+    if (!account) {
       throw new NotFoundException('origin not found');
     }
     const resultObject = this.withdrawAccount(origin, amount);
-    return resultObject
- 
+    return resultObject;
   }
 
-  transfer(eventBody:EventBodyDTO){
-    const {destination, origin, amount} = eventBody;
-    if(!this.existsAccount(origin)){
+  transfer(eventBody: EventBodyDTO) {
+    const { destination, origin, amount } = eventBody;
+    if (!this.existsAccount(origin)) {
       throw new NotFoundException('origin not found');
     }
     const withdrawResult = this.withdrawAccount(origin, amount);
     const depositResult = this.depositAccount(destination, amount);
-    const transferResult = this.transferResultFactory(withdrawResult, depositResult);
-      
+    const transferResult = this.transferResultFactory(
+      withdrawResult,
+      depositResult,
+    );
+
     return transferResult;
   }
 
-  depositAccount(accountId:string, amount:number){
+  depositAccount(accountId: string, amount: number) {
     const foundAccount = this.existsAccount(accountId);
-    if(!foundAccount){
+    if (!foundAccount) {
       throw new NotFoundException('destination not found');
     }
-      foundAccount.balance += amount;
-      const resultObject = {
-        destination:{
-          id:accountId,
-          balance:foundAccount.balance
-        }
-      }
-      return resultObject; 
+    foundAccount.balance += amount;
+    const resultObject = {
+      destination: {
+        id: accountId,
+        balance: foundAccount.balance,
+      },
+    };
+    return resultObject;
   }
 
-  withdrawAccount(accountId:string, amount:number){
+  withdrawAccount(accountId: string, amount: number) {
     const foundAccount = this.existsAccount(accountId);
-    if(!foundAccount){
+    if (!foundAccount) {
       throw new NotFoundException('origin not found');
     }
     foundAccount.balance -= amount;
     const resultObject = {
-      origin:{
-        id:accountId,
-        balance:foundAccount.balance
-      }
-    }
+      origin: {
+        id: accountId,
+        balance: foundAccount.balance,
+      },
+    };
     return resultObject;
   }
 
-  existsAccount(accountId:string){
-    if(!this.accounts.includes(accountId)){
+  existsAccount(accountId: string) {
+    if (!this.accounts.includes(accountId)) {
       return false;
     }
     const account = this.accountBalance.find(
@@ -116,42 +121,42 @@ export class AppService {
     return account;
   }
 
-  createAccount(accountId:string){
+  createAccount(accountId: string) {
     const objAccountBalance = {
-      accountId:accountId,
-      balance:0
-    }
+      accountId: accountId,
+      balance: 0,
+    };
     this.accounts.push(accountId);
     this.accountBalance.push(objAccountBalance);
   }
 
-  transferResultFactory(withdrawResult:any, depositResult:any){
-    return  {
-      origin:{
+  transferResultFactory(withdrawResult: any, depositResult: any) {
+    return {
+      origin: {
         id: withdrawResult.origin.id,
-        balance:withdrawResult.origin.balance
+        balance: withdrawResult.origin.balance,
       },
-      destination:{
-        id:depositResult.destination.id,
-        balance:depositResult.destination.balance
-      }
-    }
+      destination: {
+        id: depositResult.destination.id,
+        balance: depositResult.destination.balance,
+      },
+    };
   }
-  reset(){
-    this.accounts = ['1','2','300'];
+  reset() {
+    this.accounts = ['1', '2', '300'];
     this.accountBalance = [
       {
-        accountId:'1',
-        balance:10
+        accountId: '1',
+        balance: 10,
       },
       {
-        accountId:'2',
-        balance:10
+        accountId: '2',
+        balance: 10,
       },
       {
-        accountId:'300',
-        balance:0
-      }
+        accountId: '300',
+        balance: 0,
+      },
     ];
   }
 }
